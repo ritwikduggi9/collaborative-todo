@@ -1,81 +1,146 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
+import io from "socket.io-client";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+
+const socket = io("https://collaborative-todo-backend-nzoy.onrender.com");
 
 const columns = ["Todo", "In Progress", "Done"];
 
 function KanbanBoard() {
   const [tasks, setTasks] = useState([]);
+  const [newTask, setNewTask] = useState({ title: "", description: "", priority: "Low" });
+
+  const token = localStorage.getItem("token");
 
   useEffect(() => {
     fetchTasks();
+
+    socket.on("taskUpdated", () => {
+      fetchTasks();
+    });
+
+    return () => socket.off("taskUpdated");
   }, []);
 
   const fetchTasks = async () => {
-    const res = await axios.get("http://localhost:5000/api/tasks");
-    setTasks(res.data);
+    try {
+      const res = await axios.get("https://collaborative-todo-backend-nzoy.onrender.com/api/tasks", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setTasks(res.data);
+    } catch (err) {
+      console.error("Error fetching tasks:", err);
+    }
+  };
+
+  const handleCreateTask = async () => {
+    try {
+      await axios.post("https://collaborative-todo-backend-nzoy.onrender.com/api/tasks", newTask, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setNewTask({ title: "", description: "", priority: "Low" });
+    } catch (err) {
+      console.error("Task creation failed:", err);
+      alert(err.response?.data?.error || "Task creation failed");
+    }
   };
 
   const onDragEnd = async (result) => {
     const { destination, source, draggableId } = result;
+
     if (!destination || destination.droppableId === source.droppableId) return;
 
-    const updatedTask = tasks.find(task => task._id === draggableId);
-    updatedTask.status = destination.droppableId;
-
-    await axios.put(`http://localhost:5000/api/tasks/${draggableId}`, updatedTask);
-    fetchTasks();
+    try {
+      const updated = await axios.put(
+        `https://collaborative-todo-backend-nzoy.onrender.com/api/tasks/${draggableId}`,
+        { status: destination.droppableId },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+    } catch (err) {
+      console.error("Drag update failed:", err);
+    }
   };
 
   return (
-    <div style={{ display: "flex", padding: 20, gap: 20 }}>
+    <div style={{ padding: 20 }}>
+      <h2>🧠 Collaborative Kanban Board</h2>
+
+      {/* Task Creation Form */}
+      <div style={{ marginBottom: 30 }}>
+        <h3>Create New Task</h3>
+        <input
+          placeholder="Title"
+          value={newTask.title}
+          onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+        />{" "}
+        <input
+          placeholder="Description"
+          value={newTask.description}
+          onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+        />{" "}
+        <select
+          value={newTask.priority}
+          onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
+        >
+          <option value="Low">Low</option>
+          <option value="Medium">Medium</option>
+          <option value="High">High</option>
+        </select>{" "}
+        <button onClick={handleCreateTask}>Create Task</button>
+      </div>
+
+      {/* DnD Kanban Board */}
       <DragDropContext onDragEnd={onDragEnd}>
-        {columns.map((col) => (
-          <Droppable droppableId={col} key={col}>
-            {(provided) => (
-              <div
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                style={{
-                  flex: 1,
-                  backgroundColor: "#f2f2f2",
-                  padding: 10,
-                  borderRadius: 8,
-                  minHeight: 300,
-                }}
-              >
-                <h3>{col}</h3>
-                {tasks
-                  .filter((task) => task.status === col)
-                  .map((task, index) => (
-                    <Draggable draggableId={task._id} index={index} key={task._id}>
-                      {(provided) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                          style={{
-                            padding: 10,
-                            backgroundColor: "#fff",
-                            marginBottom: 10,
-                            borderRadius: 4,
-                            boxShadow: "0 0 5px rgba(0,0,0,0.1)",
-                            ...provided.draggableProps.style,
-                          }}
-                        >
-                          <strong>{task.title}</strong>
-                          <div style={{ fontSize: "0.8em", color: "#555" }}>
-                            {task.assignedTo?.username || "Unassigned"}
+        <div style={{ display: "flex", gap: 20 }}>
+          {columns.map((col) => (
+            <Droppable key={col} droppableId={col}>
+              {(provided) => (
+                <div
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  style={{
+                    backgroundColor: "#f1f1f1",
+                    padding: 10,
+                    width: 300,
+                    minHeight: 300,
+                    borderRadius: 8,
+                  }}
+                >
+                  <h4>{col}</h4>
+                  {tasks
+                    .filter((t) => t.status === col)
+                    .map((task, index) => (
+                      <Draggable key={task._id} draggableId={task._id} index={index}>
+                        {(provided) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            style={{
+                              padding: 10,
+                              margin: "8px 0",
+                              backgroundColor: "#fff",
+                              borderRadius: 4,
+                              boxShadow: "0 0 3px rgba(0,0,0,0.1)",
+                              ...provided.draggableProps.style,
+                            }}
+                          >
+                            <strong>{task.title}</strong>
+                            <p>{task.description}</p>
+                            <small>Priority: {task.priority}</small>
                           </div>
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        ))}
+                        )}
+                      </Draggable>
+                    ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          ))}
+        </div>
       </DragDropContext>
     </div>
   );
