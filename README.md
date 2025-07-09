@@ -73,8 +73,14 @@ Real-time updates will appear instantly across connected sessions
 
 ![Kanban Board](./kanban-board.png)
 
-##📄 License
-This project is for educational purposes only.
-Built by Ritwik Duggi, 2025.
+## 🔗 Live Demo
+
+Access the deployed app here:  
+👉 [https://collaborative-todo-eta.vercel.app](https://collaborative-todo-eta.vercel.app)
+
+## 📄 License
+
+This project is for educational purposes only.  
+Built by **Ritwik Duggi**, 2025.
 
 
