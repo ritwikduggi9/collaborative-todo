@@ -8,6 +8,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Login />} />
+        <Route path="/login" element={<Login />} /> {/* ✅ Add this line */}
         <Route path="/register" element={<Register />} />
         <Route path="/board" element={<KanbanBoard />} />
       </Routes>
