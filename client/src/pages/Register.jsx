@@ -13,7 +13,7 @@ function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:5000/api/auth/register", formData);
+      await axios.post("https://collaborative-todo-backend-nzoy.onrender.com/api/auth/register", formData);
       alert("Registered successfully!");
       navigate("/");
     } catch (err) {
