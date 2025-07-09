@@ -9,17 +9,18 @@ const columns = ["Todo", "In Progress", "Done"];
 
 function KanbanBoard() {
   const [tasks, setTasks] = useState([]);
-  const [newTask, setNewTask] = useState({ title: "", description: "", priority: "Low" });
+  const [newTask, setNewTask] = useState({
+    title: "",
+    description: "",
+    priority: "Low",
+    status: "Todo"
+  });
 
   const token = localStorage.getItem("token");
 
   useEffect(() => {
     fetchTasks();
-
-    socket.on("taskUpdated", () => {
-      fetchTasks();
-    });
-
+    socket.on("taskUpdated", fetchTasks);
     return () => socket.off("taskUpdated");
   }, []);
 
@@ -39,26 +40,27 @@ function KanbanBoard() {
       await axios.post("https://collaborative-todo-backend-nzoy.onrender.com/api/tasks", newTask, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setNewTask({ title: "", description: "", priority: "Low" });
+      setNewTask({ title: "", description: "", priority: "Low", status: "Todo" });
     } catch (err) {
       console.error("Task creation failed:", err);
       alert(err.response?.data?.error || "Task creation failed");
     }
   };
 
+  // ✅ Fixed: Refresh task list after drag
   const onDragEnd = async (result) => {
     const { destination, source, draggableId } = result;
-
     if (!destination || destination.droppableId === source.droppableId) return;
 
     try {
-      const updated = await axios.put(
+      await axios.put(
         `https://collaborative-todo-backend-nzoy.onrender.com/api/tasks/${draggableId}`,
         { status: destination.droppableId },
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+      fetchTasks(); // ✅ Refresh list
     } catch (err) {
       console.error("Drag update failed:", err);
     }
