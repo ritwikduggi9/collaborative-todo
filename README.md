@@ -78,6 +78,11 @@ Real-time updates will appear instantly across connected sessions
 Access the deployed app here:  
 👉 [https://collaborative-todo-eta.vercel.app](https://collaborative-todo-eta.vercel.app)
 
+## 🔗 Backend API
+
+Live backend hosted on Render:  
+👉 [https://collaborative-todo-backend-nzoy.onrender.com](https://collaborative-todo-backend-nzoy.onrender.com)
+
 ## 📄 License
 
 This project is for educational purposes only.  
